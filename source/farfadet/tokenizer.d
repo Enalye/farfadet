@@ -12,9 +12,9 @@ import std.exception;
 import farfadet.error;
 import farfadet.token;
 
-package final class FarfadetParser {
+package final class Tokenizer {
     private {
-        FarfadetToken[] _tokens;
+        Token[] _tokens;
         dstring[] _lines;
         dstring _text;
         size_t _line, _current, _positionOfLine;
@@ -59,7 +59,7 @@ package final class FarfadetParser {
         _advance(true);
 
         if (_current >= _text.length) {
-            _tokens ~= FarfadetToken(_line, _current, _positionOfLine);
+            _tokens ~= Token(_line, _current, _positionOfLine);
         }
 
         int blockLevel, arrayLevel;
@@ -88,8 +88,8 @@ package final class FarfadetParser {
                 _scanChar();
                 break;
             case '{':
-                FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
-                token.type = FarfadetToken.Type.openBlock;
+                Token token = Token(_line, _current, _positionOfLine);
+                token.type = Token.Type.openBlock;
                 _tokens ~= token;
                 blockLevel++;
 
@@ -97,8 +97,8 @@ package final class FarfadetParser {
                 arrayLevel = 0;
                 break;
             case '}':
-                FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
-                token.type = FarfadetToken.Type.closeBlock;
+                Token token = Token(_line, _current, _positionOfLine);
+                token.type = Token.Type.closeBlock;
                 _tokens ~= token;
                 blockLevel--;
 
@@ -115,14 +115,14 @@ package final class FarfadetParser {
                 }
                 break;
             case '[':
-                FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
-                token.type = FarfadetToken.Type.openArray;
+                Token token = Token(_line, _current, _positionOfLine);
+                token.type = Token.Type.openArray;
                 _tokens ~= token;
                 arrayLevel++;
                 break;
             case ']':
-                FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
-                token.type = FarfadetToken.Type.closeArray;
+                Token token = Token(_line, _current, _positionOfLine);
+                token.type = Token.Type.closeArray;
                 _tokens ~= token;
                 arrayLevel--;
 
@@ -227,7 +227,7 @@ package final class FarfadetParser {
     - Un nombre flottant peut commencer par un point ou avoir un point au milieu mais pas finir par un point.
 	*/
     private void _scanNumber() {
-        FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
+        Token token = Token(_line, _current, _positionOfLine);
 
         bool isStart = true;
         bool isPrefix, isMaybeFloat, isFloat;
@@ -345,7 +345,7 @@ package final class FarfadetParser {
         }
 
         if (!buffer.length && !isFloat) {
-            token.type = FarfadetToken.Type.int_;
+            token.type = Token.Type.int_;
             token.intValue = 0;
             _tokens ~= token;
             _raiseError(Error.emptyNumber);
@@ -353,7 +353,7 @@ package final class FarfadetParser {
 
         try {
             if (isFloat) {
-                token.type = FarfadetToken.Type.float_;
+                token.type = Token.Type.float_;
                 token.floatValue = to!double(buffer);
                 if (isNegative)
                     token.floatValue = -token.floatValue;
@@ -368,24 +368,24 @@ package final class FarfadetParser {
                     radix = 16;
 
                 if (isNegative) {
-                    token.type = FarfadetToken.Type.int_;
+                    token.type = Token.Type.int_;
                     token.intValue = -to!long(buffer, radix);
                 }
                 else {
                     const ulong value = to!ulong(buffer, radix);
                     if (value & (1uL << 63)) {
-                        token.type = FarfadetToken.Type.uint_;
+                        token.type = Token.Type.uint_;
                         token.uintValue = value;
                     }
                     else {
-                        token.type = FarfadetToken.Type.int_;
+                        token.type = Token.Type.int_;
                         token.intValue = value;
                     }
                 }
             }
         }
         catch (ConvOverflowException) {
-            token.type = FarfadetToken.Type.int_;
+            token.type = Token.Type.int_;
             token.intValue = 0;
             _tokens ~= token;
             _raiseError(Error.numberTooBig);
@@ -399,7 +399,7 @@ package final class FarfadetParser {
         textLength = 1;
 
         // Pour la gestion d’erreur
-        FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
+        Token token = Token(_line, _current, _positionOfLine);
 
         if (_getCurrent() != '\\') {
             symbol = _getCurrent();
@@ -448,7 +448,7 @@ package final class FarfadetParser {
             textLength++;
 
             if (_getCurrent() != '{') {
-                token = FarfadetToken(_line, _current, _positionOfLine);
+                token = Token(_line, _current, _positionOfLine);
                 _tokens ~= token;
                 _raiseError(Error.expectedLeftCurlyBraceInUnicode);
             }
@@ -463,7 +463,7 @@ package final class FarfadetParser {
                     textLength++;
                 }
                 else {
-                    token = FarfadetToken(_line, _current, _positionOfLine);
+                    token = Token(_line, _current, _positionOfLine);
                     _tokens ~= token;
                     _raiseError(Error.unexpectedSymbolInUnicode);
                 }
@@ -497,12 +497,12 @@ package final class FarfadetParser {
 
     /// Analyse un caractère délimité par des `'`.
     void _scanChar() {
-        FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
-        token.type = FarfadetToken.Type.char_;
+        Token token = Token(_line, _current, _positionOfLine);
+        token.type = Token.Type.char_;
         uint textLength = 0;
 
         if (_getCurrent() != '\'') {
-            token = FarfadetToken(_line, _current, _positionOfLine);
+            token = Token(_line, _current, _positionOfLine);
             _tokens ~= token;
             _raiseError(Error.expectedQuoteStartChar);
         }
@@ -524,7 +524,7 @@ package final class FarfadetParser {
         _tokens ~= token;
 
         if (_getCurrent() != '\'') {
-            token = FarfadetToken(_line, _current, _positionOfLine);
+            token = Token(_line, _current, _positionOfLine);
             _tokens ~= token;
             _raiseError(Error.missingQuoteEndChar);
         }
@@ -532,8 +532,8 @@ package final class FarfadetParser {
 
     /// Analyse une chaîne de caractères délimité par des `"`.
     private void _scanString() {
-        FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
-        token.type = FarfadetToken.Type.string_;
+        Token token = Token(_line, _current, _positionOfLine);
+        token.type = Token.Type.string_;
         uint textLength = 0;
 
         if (_getCurrent() != '\"')
@@ -589,10 +589,31 @@ package final class FarfadetParser {
         }
         _current--;
 
-        FarfadetToken token = FarfadetToken(_line, _current, _positionOfLine);
-        token.type = FarfadetToken.Type.key;
-        token.strValue = to!string(buffer);
+        Token token = Token(_line, _current, _positionOfLine);
+
+        switch (buffer) {
+        case "true"d:
+            token.type = Token.Type.bool_;
+            token.boolValue = true;
+            break;
+        case "false"d:
+            token.type = Token.Type.bool_;
+            token.boolValue = false;
+            break;
+        default:
+            token.type = Token.Type.key;
+            token.strValue = to!string(buffer);
+            break;
+        }
+
         _tokens ~= token;
+    }
+
+    package void check(bool value, string msg, Token token, string dfile = __FILE__,
+        size_t dline = __LINE__) {
+        if (value)
+            return;
+        throw new FarfadetSyntaxException(msg, token.line(), token.column(), dfile, dline);
     }
 
     /// Erreur lexicale.
@@ -604,7 +625,7 @@ package final class FarfadetParser {
         string error = _filePath ~ "(";
 
         if (_tokens.length) {
-            FarfadetToken token = _tokens[$ - 1];
+            Token token = _tokens[$ - 1];
             error ~= to!string(token.line());
             error ~= ",";
             error ~= to!string(token.column());
@@ -665,7 +686,7 @@ package final class FarfadetParser {
     }
 
     /// Renvoie le jeton de la position actuelle
-    FarfadetToken getToken(sizediff_t offset = 0) {
+    Token getToken(sizediff_t offset = 0) {
         const size_t position = _currentToken + offset;
         if (position < 0 || position >= cast(size_t) _tokens.length) {
             _raiseError(Error.unexpectedEndOfFile);

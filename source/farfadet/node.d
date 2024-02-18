@@ -7,6 +7,7 @@ module farfadet.node;
 
 import std.conv : to;
 import std.exception : enforce;
+import std.format : format;
 
 import farfadet.error;
 import farfadet.token;
@@ -16,7 +17,7 @@ import farfadet.value;
 final class Farfadet {
     private {
         string _name;
-        FarfadetValue[] _values;
+        Value[] _values;
         Farfadet[] _nodes;
     }
 
@@ -31,103 +32,98 @@ final class Farfadet {
     }
 
     T get(T)(size_t index) const {
-        enforce!FarfadetException(index < _values.length, "index invalide");
+        enforce!FarfadetException(index < _values.length,
+            format!"invalid index %d out of %d argument(s) available"(index, _values.length));
         return _values[index].get!T();
     }
 
     this(string text) {
-        FarfadetParser parser = new FarfadetParser(text);
+        Tokenizer tokenizer = new Tokenizer(text);
 
-        while (!parser.isEndToken()) {
-            Farfadet node = new Farfadet(parser);
+        while (!tokenizer.isEndToken()) {
+            Farfadet node = new Farfadet(tokenizer);
             _nodes ~= node;
         }
     }
 
-    private this(FarfadetParser parser) {
-        FarfadetToken token = parser.getToken();
-        enforce!FarfadetException(token.type == FarfadetToken.Type.key,
-            "missing key, found `" ~ to!string(token.type) ~ "` instead");
+    private this(Tokenizer tokenizer) {
+        Token token = tokenizer.getToken();
+        tokenizer.check(token.type == Token.Type.key,
+            format!"missing key, found `%s` instead"(token.toString()), token);
 
         _name = token.strValue;
-        parser.advanceToken();
+        tokenizer.advanceToken();
 
-        while (!parser.isEndToken()) {
-            token = parser.getToken();
-            switch (token.type) with (FarfadetToken.Type) {
+        while (!tokenizer.isEndToken()) {
+            token = tokenizer.getToken();
+            switch (token.type) with (Token.Type) {
             case openBlock:
-                _parseBlock(parser);
+                _parseBlock(tokenizer);
                 return;
             case key:
                 return;
             default:
-                _values ~= _parseParameter(parser);
+                _values ~= _parseParameter(tokenizer);
                 break;
             }
         }
     }
 
-    private void _parseBlock(FarfadetParser parser) {
-        parser.advanceToken();
+    private void _parseBlock(Tokenizer tokenizer) {
+        tokenizer.advanceToken();
         for (;;) {
-            FarfadetToken token = parser.getToken();
-            if (token.type == FarfadetToken.Type.closeBlock) {
-                parser.advanceToken();
+            Token token = tokenizer.getToken();
+            if (token.type == Token.Type.closeBlock) {
+                tokenizer.advanceToken();
                 return;
             }
 
-            Farfadet node = new Farfadet(parser);
+            Farfadet node = new Farfadet(tokenizer);
             _nodes ~= node;
         }
     }
 
-    private FarfadetValue _parseParameter(FarfadetParser parser) {
-        FarfadetToken token = parser.getToken();
-        final switch (token.type) with (FarfadetToken.Type) {
+    private Value _parseParameter(Tokenizer tokenizer) {
+        Token token = tokenizer.getToken();
+        final switch (token.type) with (Token.Type) {
         case key:
-            throw new FarfadetException("key");
+            throw new FarfadetException("unexpected key in place of an argument");
         case int_:
-            parser.advanceToken();
-            return FarfadetValue(token.intValue);
+            tokenizer.advanceToken();
+            return Value(token.intValue);
         case uint_:
-            parser.advanceToken();
-            return FarfadetValue(token.uintValue);
+            tokenizer.advanceToken();
+            return Value(token.uintValue);
         case char_:
-            parser.advanceToken();
-            return FarfadetValue(token.charValue);
+            tokenizer.advanceToken();
+            return Value(token.charValue);
         case float_:
-            parser.advanceToken();
-            return FarfadetValue(token.floatValue);
-        case bool_:
-            parser.advanceToken();
-            return FarfadetValue(token.boolValue);
+            tokenizer.advanceToken();
+            return Value(token.floatValue);
         case string_:
-            parser.advanceToken();
-            return FarfadetValue(token.strValue);
-        case true_:
-            parser.advanceToken();
-            return FarfadetValue(true);
-        case false_:
-            parser.advanceToken();
-            return FarfadetValue(false);
+            tokenizer.advanceToken();
+            return Value(token.strValue);
+        case bool_:
+            tokenizer.advanceToken();
+            return Value(token.boolValue);
         case openBlock:
-            throw new FarfadetException("openBlock");
+            throw new FarfadetException("unexpected `{` in place of an argument");
         case closeBlock:
-            throw new FarfadetException("closeBlock");
+            throw new FarfadetException("unexpected `}` in place of an argument");
         case openArray:
-            FarfadetValue[] array;
-            parser.advanceToken();
+            Value[] array;
+            tokenizer.advanceToken();
             for (;;) {
-                token = parser.getToken();
-                if (token.type == FarfadetToken.Type.closeArray) {
-                    parser.advanceToken();
+                token = tokenizer.getToken();
+                if (token.type == Token.Type.closeArray) {
+                    tokenizer.advanceToken();
                     break;
                 }
-                array ~= _parseParameter(parser);
+                array ~= _parseParameter(tokenizer);
             }
-            return FarfadetValue(array);
+            return Value(array);
         case closeArray:
-            throw new FarfadetException("closeArray");
+            throw new FarfadetException("unexpected `]` in place of an argument");
         }
     }
 }

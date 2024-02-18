@@ -5,7 +5,9 @@
  */
 module farfadet.token;
 
-package struct FarfadetToken {
+import std.conv : to;
+
+package struct Token {
     enum Type {
         key,
         int_,
@@ -14,8 +16,6 @@ package struct FarfadetToken {
         float_,
         bool_,
         string_,
-        true_,
-        false_,
         openBlock,
         closeBlock,
         openArray,
@@ -66,4 +66,31 @@ package struct FarfadetToken {
     }
 
     @disable this();
+
+    string toString() const {
+        final switch (type) with (Type) {
+        case key:
+            return strValue;
+        case int_:
+            return to!string(intValue);
+        case uint_:
+            return to!string(uintValue);
+        case char_:
+            return "'" ~ to!string(charValue) ~ "'";
+        case float_:
+            return to!string(floatValue);
+        case bool_:
+            return boolValue ? "true" : "false";
+        case string_:
+            return "\"" ~ strValue ~ "\"";
+        case openBlock:
+            return "{";
+        case closeBlock:
+            return "}";
+        case openArray:
+            return "[";
+        case closeArray:
+            return "]";
+        }
+    }
 }

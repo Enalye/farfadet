@@ -10,7 +10,7 @@ import std.traits;
 
 import farfadet.error;
 
-package struct FarfadetValue {
+package struct Value {
     enum Type {
         uint_,
         int_,
@@ -31,7 +31,7 @@ package struct FarfadetValue {
             double _float;
             bool _bool;
             string _string;
-            FarfadetValue[] _array;
+            Value[] _array;
         }
     }
 
@@ -77,7 +77,7 @@ package struct FarfadetValue {
         _string = value;
     }
 
-    this(FarfadetValue[] values) {
+    this(Value[] values) {
         _type = Type.array_;
         _array = values;
     }
