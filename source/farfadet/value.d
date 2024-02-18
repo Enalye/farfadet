@@ -117,7 +117,7 @@ package struct Value {
                     }
                     return cast(T) _int;
                 default:
-                    throw new FarfadetException("the value is not an unsigned integral number");
+                    throw new FarfadetException("the value is not an integral number");
                 }
             }
             else static if (isSigned!T) {
@@ -136,7 +136,7 @@ package struct Value {
                     }
                     return cast(T) _int;
                 default:
-                    throw new FarfadetException("the value is not an signed integral number");
+                    throw new FarfadetException("the value is not an integral number");
                 }
             }
         }

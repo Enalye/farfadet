@@ -17,25 +17,33 @@ void main() {
         SetConsoleOutputCP(65_001);
     }
     try {
-        auto startTime = MonoTime.currTime();
-
         auto text = "
-        test 1 2 3
+        test1 1 2 3
+        test2 [1 -2 3]
         ";
 
         Farfadet ffd = new Farfadet(text);
 
-        auto duration = MonoTime.currTime() - startTime;
-        writeln("Temps écoulé: \t", duration);
-
         foreach (node; ffd.nodes) {
-            writeln("Node: ", node.name);
-            for (int i; i < 3; i++) {
-                writeln("Arg ", i, ": ", node.get!int(i));
+            switch (node.name) {
+            case "test1":
+                for (int i; i < 3; i++) {
+                    writeln("Arg ", i, ": ", node.get!(int)(i));
+                }
+                break;
+            case "test2":
+                writeln(node.get!(int[])(0));
+                break;
+            default:
+                break;
             }
         }
-
-        //Benchmark
+    }
+    catch (FarfadetSyntaxException e) {
+        writeln("Farfadet: ", e.msg, " at (", e.tokenLine, ":", e.tokenColumn, ")");
+    }
+    catch (FarfadetException e) {
+        writeln("Farfadet: ", e.msg);
     }
     catch (Exception e) {
         writeln(e.msg);
