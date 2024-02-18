@@ -1,0 +1,17 @@
+{
+    "name": "farfadet",
+    "description": "Format d�claratif simple de configuration",
+    "copyright": "Copyright © 2024, enalye",
+    "license": "Zlib",
+    "authors": [
+        "enalye"
+    ],
+    "targetName": "farfadet",
+    "targetType": "library",
+    "targetPath": "bin",
+    "workingDirectory": "bin",
+    "-ddoxTool": "scod",
+    "subPackages": [
+        "./test"
+    ]
+}

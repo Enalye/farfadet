@@ -1,0 +1,9 @@
+{
+	"name": "test",
+	"targetType": "executable",
+	"dependencies": {
+		"farfadet": {"path": "../"}
+	},
+    "dflags": ["-gf"],
+	"targetPath": "../bin"
+}
