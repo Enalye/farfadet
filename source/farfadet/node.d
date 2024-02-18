@@ -49,7 +49,7 @@ final class Farfadet {
     private this(Tokenizer tokenizer) {
         Token token = tokenizer.getToken();
         tokenizer.check(token.type == Token.Type.key,
-            format!"missing key, found `%s` instead"(token.toString()), token);
+            format!"missing key, found `%s` instead"(token.toString()));
 
         _name = token.strValue;
         tokenizer.advanceToken();
@@ -87,7 +87,8 @@ final class Farfadet {
         Token token = tokenizer.getToken();
         final switch (token.type) with (Token.Type) {
         case key:
-            throw new FarfadetException("unexpected key in place of an argument");
+            tokenizer.check(false, "unexpected key in place of an argument");
+            return Value(0);
         case int_:
             tokenizer.advanceToken();
             return Value(token.intValue);
@@ -107,9 +108,11 @@ final class Farfadet {
             tokenizer.advanceToken();
             return Value(token.boolValue);
         case openBlock:
-            throw new FarfadetException("unexpected `{` in place of an argument");
+            tokenizer.check(false, "unexpected `{` in place of an argument");
+            return Value(0);
         case closeBlock:
-            throw new FarfadetException("unexpected `}` in place of an argument");
+            tokenizer.check(false, "unexpected `}` in place of an argument");
+            return Value(0);
         case openArray:
             Value[] array;
             tokenizer.advanceToken();
@@ -123,7 +126,8 @@ final class Farfadet {
             }
             return Value(array);
         case closeArray:
-            throw new FarfadetException("unexpected `]` in place of an argument");
+            tokenizer.check(false, "unexpected `]` in place of an argument");
+            return Value(0);
         }
     }
 }

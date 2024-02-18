@@ -48,9 +48,8 @@ package final class Tokenizer {
 
     /// Renvoie le caractère présent à la position du curseur.
     private dchar _getCurrent(sizediff_t offset = 0) {
-        const size_t position = _current + offset;
-        if (position < 0 || position >= _text.length)
-            _raiseError(Error.unexpectedEndOfFile);
+        const ptrdiff_t position = (cast(ptrdiff_t) _current) + offset;
+        _check(position >= 0 && position < _text.length, "unexpected end of file");
         return _text[position];
     }
 
@@ -102,9 +101,7 @@ package final class Tokenizer {
                 _tokens ~= token;
                 blockLevel--;
 
-                if (blockLevel < 0) {
-                    _raiseError(Error.mismatchedBraces);
-                }
+                _check(blockLevel >= 0, "mismatched curly braces");
 
                 if (arrayLevels.length) {
                     arrayLevel = arrayLevels[$ - 1];
@@ -126,9 +123,7 @@ package final class Tokenizer {
                 _tokens ~= token;
                 arrayLevel--;
 
-                if (arrayLevel < 0) {
-                    _raiseError(Error.mismatchedBrackets);
-                }
+                _check(arrayLevel >= 0, "mismatched brackets");
                 break;
             default:
                 break;
@@ -345,10 +340,7 @@ package final class Tokenizer {
         }
 
         if (!buffer.length && !isFloat) {
-            token.type = Token.Type.int_;
-            token.intValue = 0;
-            _tokens ~= token;
-            _raiseError(Error.emptyNumber);
+            _check(false, "empty number");
         }
 
         try {
@@ -385,10 +377,7 @@ package final class Tokenizer {
             }
         }
         catch (ConvOverflowException) {
-            token.type = Token.Type.int_;
-            token.intValue = 0;
-            _tokens ~= token;
-            _raiseError(Error.numberTooBig);
+            _check(false, "number too big");
         }
         _tokens ~= token;
     }
@@ -447,11 +436,7 @@ package final class Tokenizer {
             _current++;
             textLength++;
 
-            if (_getCurrent() != '{') {
-                token = Token(_line, _current, _positionOfLine);
-                _tokens ~= token;
-                _raiseError(Error.expectedLeftCurlyBraceInUnicode);
-            }
+            _check(_getCurrent() == '{', "missing `{` in an unicode escape sequence");
             _current++;
             textLength++;
 
@@ -463,9 +448,7 @@ package final class Tokenizer {
                     textLength++;
                 }
                 else {
-                    token = Token(_line, _current, _positionOfLine);
-                    _tokens ~= token;
-                    _raiseError(Error.unexpectedSymbolInUnicode);
+                    _check(false, "unexpected symbol in an unicode escape sequence");
                 }
                 _current++;
             }
@@ -474,15 +457,11 @@ package final class Tokenizer {
             try {
                 const ulong value = to!ulong(buffer, 16);
 
-                if (value > 0x10FFFF) {
-                    _tokens ~= token;
-                    _raiseError(Error.unicodeTooBig);
-                }
+                _check(value <= 0x10FFFF, "unicode must be at most 0x10FFFF");
                 symbol = cast(dchar) value;
             }
             catch (ConvOverflowException e) {
-                _tokens ~= token;
-                _raiseError(Error.unicodeTooBig);
+                _check(false, "unicode must be at most 0x10FFFF");
             }
 
             break;
@@ -501,11 +480,7 @@ package final class Tokenizer {
         token.type = Token.Type.char_;
         uint textLength = 0;
 
-        if (_getCurrent() != '\'') {
-            token = Token(_line, _current, _positionOfLine);
-            _tokens ~= token;
-            _raiseError(Error.expectedQuoteStartChar);
-        }
+        _check(_getCurrent() == '\'', "missing `'` at the start of the character");
         _current++;
         textLength++;
 
@@ -523,11 +498,7 @@ package final class Tokenizer {
         token.charValue = ch;
         _tokens ~= token;
 
-        if (_getCurrent() != '\'') {
-            token = Token(_line, _current, _positionOfLine);
-            _tokens ~= token;
-            _raiseError(Error.missingQuoteEndChar);
-        }
+        _check(_getCurrent() == '\'', "missing `'` at the end of the character");
     }
 
     /// Analyse une chaîne de caractères délimité par des `"`.
@@ -536,15 +507,13 @@ package final class Tokenizer {
         token.type = Token.Type.string_;
         uint textLength = 0;
 
-        if (_getCurrent() != '\"')
-            _raiseError(Error.expectedQuoteStartString);
+        _check(_getCurrent() == '\'', "missing `'` at the start of the string");
         _current++;
         textLength++;
 
         string buffer;
         for (;;) {
-            if (_current >= _text.length)
-                _raiseError(Error.missingQuoteEndString);
+            _check(_current < _text.length, "missing `\"` at the end of the string");
             const dchar symbol = _getCurrent();
 
             if (symbol == '\n') {
@@ -609,88 +578,23 @@ package final class Tokenizer {
         _tokens ~= token;
     }
 
-    package void check(bool value, string msg, Token token, string dfile = __FILE__,
-        size_t dline = __LINE__) {
+    private void _check(bool value, string msg, string dfile = __FILE__, size_t dline = __LINE__) {
         if (value)
             return;
+        throw new FarfadetSyntaxException(msg, _line + 1u, _current - _positionOfLine, dfile, dline);
+    }
+
+    package void check(bool value, string msg, string dfile = __FILE__, size_t dline = __LINE__) {
+        if (value)
+            return;
+        Token token = getToken();
         throw new FarfadetSyntaxException(msg, token.line(), token.column(), dfile, dline);
-    }
-
-    /// Erreur lexicale.
-    private void _raiseError(Error error) {
-        _raiseError(_getErrorMessage(error));
-    }
-    /// Ditto
-    private void _raiseError(string message) {
-        string error = _filePath ~ "(";
-
-        if (_tokens.length) {
-            Token token = _tokens[$ - 1];
-            error ~= to!string(token.line());
-            error ~= ",";
-            error ~= to!string(token.column());
-        }
-        else {
-            error ~= to!string(_line + 1u); // Par convention, la première ligne commence à partir de 1, et non 0
-            error ~= ",";
-            error ~= to!string(_current - _positionOfLine);
-        }
-        error ~= "): Erreur: ";
-        error ~= message;
-
-        throw new FarfadetException(error);
-    }
-
-    private enum Error {
-        unexpectedEndOfFile,
-        emptyNumber,
-        numberTooBig,
-        expectedLeftCurlyBraceInUnicode,
-        unexpectedSymbolInUnicode,
-        unicodeTooBig,
-        expectedQuoteStartChar,
-        missingQuoteEndChar,
-        expectedQuoteStartString,
-        missingQuoteEndString,
-        mismatchedBraces,
-        mismatchedBrackets
-    }
-
-    private string _getErrorMessage(Error error) {
-        final switch (error) with (Error) {
-        case unexpectedEndOfFile:
-            return "fin de fichier inattendue";
-        case emptyNumber:
-            return "nombre vide";
-        case numberTooBig:
-            return "nombre trop grand";
-        case expectedLeftCurlyBraceInUnicode:
-            return "`{` attendu dans la séquence d’échappement d’un unicode";
-        case unexpectedSymbolInUnicode:
-            return "symbole inattendu dans une séquence d’échappement d’un unicode";
-        case unicodeTooBig:
-            return "un unicode ne doit pas valoir plus de 10FFFF";
-        case expectedQuoteStartChar:
-            return "`'` attendu en début de caractère";
-        case missingQuoteEndChar:
-            return "`'` manquant en fin de caractère";
-        case expectedQuoteStartString:
-            return "`\"` attendu en début de chaîne";
-        case missingQuoteEndString:
-            return "`\"` manquant en fin de chaîne";
-        case mismatchedBraces:
-            return "`}` inattendu sans `{` correspondant";
-        case mismatchedBrackets:
-            return "`]` inattendu sans `[` correspondant";
-        }
     }
 
     /// Renvoie le jeton de la position actuelle
     Token getToken(sizediff_t offset = 0) {
-        const size_t position = _currentToken + offset;
-        if (position < 0 || position >= cast(size_t) _tokens.length) {
-            _raiseError(Error.unexpectedEndOfFile);
-        }
+        const ptrdiff_t position = (cast(ptrdiff_t) _currentToken) + offset;
+        _check(position >= 0 && position < _tokens.length, "unexpected end of file");
         return _tokens[position];
     }
 
