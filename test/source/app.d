@@ -19,10 +19,17 @@ void main() {
     try {
         auto text = "
         test1 1 2 3
-        test2 [1 -2 3]
+        test2 [1 -2 3] {
+            test \"bonjour\" {
+                bool true false
+                int +1.3 -46
+            }
+        }
         ";
 
         Farfadet ffd = new Farfadet(text);
+
+        writeln("Généré: `", ffd.generate(), "`");
 
         foreach (node; ffd.nodes) {
             switch (node.name) {

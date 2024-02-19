@@ -16,28 +16,34 @@ import farfadet.value;
 
 final class Farfadet {
     private {
+        bool _isMaster;
         string _name;
         Value[] _values;
         Farfadet[] _nodes;
     }
 
     @property {
+        /// Le nom du nœud
         string name() const {
             return _name;
         }
+        /// Ditto
+        string name(string name_) {
+            enforce!FarfadetException(!_isMaster, "this node can’t have a name");
+            enforce!FarfadetException(isValidKey(name_),
+                format!"`%s` is not a valid node name"(name_));
+            return _name = name_;
+        }
 
+        /// Les nœuds enfants
         const(Farfadet[]) nodes() const {
             return _nodes;
         }
     }
 
-    T get(T)(size_t index) const {
-        enforce!FarfadetException(index < _values.length,
-            format!"invalid index %d out of %d argument(s) available"(index, _values.length));
-        return _values[index].get!T();
-    }
-
+    /// Crée un nœud à partir d’un document
     this(string text) {
+        _isMaster = true;
         Tokenizer tokenizer = new Tokenizer(text);
 
         while (!tokenizer.isEndToken()) {
@@ -46,7 +52,13 @@ final class Farfadet {
         }
     }
 
+    /// Crée un nœud vierge
+    this() {
+        _isMaster = true;
+    }
+
     private this(Tokenizer tokenizer) {
+        _isMaster = false;
         Token token = tokenizer.getToken();
         tokenizer.check(token.type == Token.Type.key,
             format!"missing key, found `%s` instead"(token.toString()));
@@ -61,6 +73,7 @@ final class Farfadet {
                 _parseBlock(tokenizer);
                 return;
             case key:
+            case closeBlock:
                 return;
             default:
                 _values ~= _parseParameter(tokenizer);
@@ -72,6 +85,7 @@ final class Farfadet {
     private void _parseBlock(Tokenizer tokenizer) {
         tokenizer.advanceToken();
         for (;;) {
+            tokenizer.check(!tokenizer.isEndToken(), "missing `}` after a `{`");
             Token token = tokenizer.getToken();
             if (token.type == Token.Type.closeBlock) {
                 tokenizer.advanceToken();
@@ -129,5 +143,87 @@ final class Farfadet {
             tokenizer.check(false, "unexpected `]` in place of an argument");
             return Value(0);
         }
+    }
+
+    /// Retire tous les arguments du nœud
+    void clear() {
+        _values.length = 0;
+    }
+
+    /// Récupère l’argument à la position donné
+    T get(T)(size_t index) const {
+        enforce!FarfadetException(index < _values.length,
+            format!"invalid index %d out of %d argument(s) available"(index, _values.length));
+        return _values[index].get!T();
+    }
+
+    /// Ajoute un argument à la liste
+    void add(T)(T value) {
+        enforce!FarfadetException(!_isMaster, "this node can’t have arguments");
+
+        Value value;
+        value.set!T(value);
+        _values ~= value;
+    }
+
+    void clearNodes() {
+        foreach (node; _nodes) {
+            node._makeOrphan();
+        }
+        _nodes.length = 0;
+    }
+
+    private void _makeOrphan() {
+        _isMaster = true;
+        _name = "";
+        _values.length = 0;
+    }
+
+    Farfadet addNode(string name_) {
+        Farfadet node = new Farfadet;
+        node._isMaster = false;
+        node.name = name_;
+        return node;
+    }
+
+    string generate(size_t spacing = 4) const {
+        return _generate(0, spacing);
+    }
+
+    private string _generate(size_t indent, size_t spacing) const {
+        string result;
+
+        if (_isMaster) {
+            foreach (node; _nodes) {
+                result ~= node._generate(indent, spacing);
+            }
+        }
+        else {
+            for (int i; i < indent; i++) {
+                result ~= " ";
+            }
+
+            result ~= _name;
+
+            foreach (value; _values) {
+                result ~= " " ~ value.toString();
+            }
+
+            if (_nodes.length)
+                result ~= " {\n";
+            foreach (node; _nodes) {
+                result ~= node._generate(indent + spacing, spacing);
+            }
+            if (_nodes.length) {
+                for (int i; i < indent; i++) {
+                    result ~= " ";
+                }
+                result ~= "}";
+            }
+
+            result ~= "\n";
+        }
+
+        return result;
     }
 }

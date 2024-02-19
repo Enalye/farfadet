@@ -5,6 +5,7 @@
  */
 module farfadet.value;
 
+import std.conv : to;
 import std.exception : enforce;
 import std.traits;
 
@@ -32,18 +33,6 @@ package struct Value {
             bool _bool;
             string _string;
             Value[] _array;
-        }
-    }
-
-    @property {
-        /// Type de valeur contenue
-        Type type() const {
-            return _type;
-        }
-
-        /// Ditto
-        private Type type(Type type_) {
-            return _type = type_;
         }
     }
 
@@ -82,6 +71,7 @@ package struct Value {
         _array = values;
     }
 
+    /// Récupère la valeur au bon format
     T get(T)() const {
         static if (isSomeString!T) {
             enforce!FarfadetException(_type == Type.string_, "the value is not a string");
@@ -154,6 +144,79 @@ package struct Value {
         }
         else {
             static assert(false, "unsupported type `" ~ T.stringof ~ "`");
+        }
+    }
+
+    /// Modifie la valeur au bon format
+    void set(T)(T value) {
+        static if (isSomeString!T) {
+            _string = to!string(value);
+            _type = Type.string_;
+        }
+        else static if (is(T == U[], U)) {
+            _array.length = 0;
+            foreach (ref element; value) {
+                Value value;
+                value.set!U(element);
+                _array ~= value;
+            }
+            _type = Type.array_;
+        }
+        else static if (isSomeChar!T) {
+            _char = to!dchar(value);
+            _type = Type.char_;
+        }
+        else static if (is(T == bool)) {
+            _bool = value;
+            _type = Type.bool_;
+        }
+        else static if (__traits(isIntegral, T)) {
+            static if (__traits(isUnsigned, T)) {
+                _uint = value;
+                _type = Type.uint_;
+            }
+            else static if (isSigned!T) {
+                _int = value;
+                _type = Type.int_;
+            }
+        }
+        else static if (__traits(isFloating, T)) {
+            _float = value;
+            _type = Type.float_;
+        }
+        else {
+            static assert(false, "unsupported type `" ~ T.stringof ~ "`");
+        }
+    }
+
+    string toString() const {
+        final switch (_type) with (Type) {
+        case uint_:
+            return to!string(_uint);
+        case int_:
+            return to!string(_int);
+        case char_:
+            return "'" ~ to!string(_char) ~ "'";
+        case float_:
+            return to!string(_float);
+        case bool_:
+            return _bool ? "true" : "false";
+        case string_:
+            return "\"" ~ _string ~ "\"";
+        case array_:
+            string result = "[";
+            bool firstValue = true;
+            foreach (ref value; _array) {
+                if (firstValue) {
+                    firstValue = false;
+                }
+                else {
+                    result ~= " ";
+                }
+                result ~= value.toString();
+            }
+            result ~= "]";
+            return result;
         }
     }
 }

@@ -64,3 +64,73 @@ maCommande {
 
 # API
 
+## Lire un document farfadet
+Ouvrir un document farfadet se fait comme suit:
+```d
+string text = "
+commande1 1 [2 3]
+commande2 {
+    commande3
+}";
+Farfadet ffd = new Farfadet(text);
+```
+Accéder aux nœuds enfants se fait avec `Farfadet.nodes`:
+```d
+Farfadet ffd = new Farfadet(text);
+
+foreach(node; ffd.nodes) {
+    /// Traite chaque nœud enfant
+}
+```
+
+Le nom de la commande associé à un nœud se récupère avec `Farfadet.name`:
+```d
+import std.stdio : writeln;
+
+Farfadet ffd = new Farfadet(text);
+
+foreach(node; ffd.nodes) {
+    writeln("Nom du nœud: ", node.name);
+}
+```
+
+Pour récupérer un argument d’une commande, on utilise `Farfadet.get()`:
+```d
+import std.stdio : writeln;
+
+Farfadet ffd = new Farfadet(text);
+
+foreach(node; ffd.nodes) {
+    if(node.name == "commande1") {
+        writeln("Arguments: ", node.get!int(0), ", ", node.get!(int[])(1));
+    }
+}
+```
+
+## Générer un document farfadet
+
+Pour générer un document, on crée un nœud vide:
+```d
+Farfadet ffd = new Farfadet;
+```
+
+Ce nœud représente le document en lui-même et ne peut pas avoir d’argument ni de nom, seulement des nœuds enfants.
+
+Ajouter un nœud enfant se fait avec `Farfadet.addNode()`:
+```d
+Farfadet command1 = ffd.addNode("command1");
+```
+
+Supprimer les nœuds se fait avec `Farfadet.clearNodes()`.
+
+Ajouter un argument au nœud peut se faire avec `Farfadet.add()`:
+```d
+command1.add(1);
+command1.add([2, 3]);
+```
+Supprimer les arguments se fait avec `Farfadet.clear()`.
+
+Enfin, pour générer le code, on utilise `Farfader.generate()`:
+```d
+string result = ffd.generate();
+```

@@ -507,7 +507,7 @@ package final class Tokenizer {
         token.type = Token.Type.string_;
         uint textLength = 0;
 
-        _check(_getCurrent() == '\'', "missing `'` at the start of the string");
+        _check(_getCurrent() == '\"', "missing `'` at the start of the string");
         _current++;
         textLength++;
 
@@ -608,4 +608,21 @@ package final class Tokenizer {
         if (_currentToken < _tokens.length)
             _currentToken++;
     }
+}
+
+package bool isValidKey(string name) {
+    if (name.length == 0)
+        return false;
+
+    if (name[0] >= '0' && name[0] <= '9')
+        return false;
+
+    foreach (symbol; name) {
+        if (symbol <= '&' || (symbol >= '(' && symbol <= '/') || (symbol >= ':' &&
+                symbol <= '@') || (symbol >= '[' && symbol <= '^') || (symbol >= '{' &&
+                symbol <= 0x7F))
+            return false;
+    }
+
+    return true;
 }
