@@ -52,6 +52,15 @@ final class Farfadet {
         }
     }
 
+    /// Crée un nœud depuis les données bruts d’un document
+    this(const(ubyte[]) data) {
+        import std.utf : validate;
+
+        string text = cast(string) data;
+        validate(text);
+        this(text);
+    }
+
     /// Crée un nœud vierge
     this() {
         _isMaster = true;
