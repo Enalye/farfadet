@@ -1,5 +1,6 @@
 # Farfadet
-Format déclaratif simple de configuration
+Format de fichier déclaratif simple de configuration.
+L’extension recommandé pour les fichiers est `.ffd`.
 
 # Format
 
