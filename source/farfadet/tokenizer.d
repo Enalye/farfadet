@@ -49,7 +49,7 @@ package final class Tokenizer {
     /// Renvoie le caractère présent à la position du curseur.
     private dchar _getCurrent(sizediff_t offset = 0) {
         const ptrdiff_t position = (cast(ptrdiff_t) _current) + offset;
-        _check(position >= 0 && position < _text.length, "unexpected end of file");
+        _check(position >= 0 && position < _text.length, "fin de fichier inopiné");
         return _text[position];
     }
 
@@ -101,7 +101,8 @@ package final class Tokenizer {
                 _tokens ~= token;
                 blockLevel--;
 
-                _check(blockLevel >= 0, "mismatched curly braces");
+                _check(blockLevel >= 0,
+                    "les accolades ouvrantes et fermantes ne correspondents pas");
 
                 if (arrayLevels.length) {
                     arrayLevel = arrayLevels[$ - 1];
@@ -123,7 +124,7 @@ package final class Tokenizer {
                 _tokens ~= token;
                 arrayLevel--;
 
-                _check(arrayLevel >= 0, "mismatched brackets");
+                _check(arrayLevel >= 0, "les crochets ouvrants et fermants ne correspondent pas");
                 break;
             default:
                 break;
@@ -340,7 +341,7 @@ package final class Tokenizer {
         }
 
         if (!buffer.length && !isFloat) {
-            _check(false, "empty number");
+            _check(false, "nombre vide");
         }
 
         try {
@@ -377,7 +378,7 @@ package final class Tokenizer {
             }
         }
         catch (ConvOverflowException) {
-            _check(false, "number too big");
+            _check(false, "nombre trop grand");
         }
         _tokens ~= token;
     }
@@ -436,7 +437,8 @@ package final class Tokenizer {
             _current++;
             textLength++;
 
-            _check(_getCurrent() == '{', "missing `{` in an unicode escape sequence");
+            _check(_getCurrent() == '{',
+                "symbole `{` manquant dans une séquence d’échappement unicode");
             _current++;
             textLength++;
 
@@ -448,7 +450,7 @@ package final class Tokenizer {
                     textLength++;
                 }
                 else {
-                    _check(false, "unexpected symbol in an unicode escape sequence");
+                    _check(false, "symbole inopiné dans une séquence d’échappement unicode");
                 }
                 _current++;
             }
@@ -457,11 +459,11 @@ package final class Tokenizer {
             try {
                 const ulong value = to!ulong(buffer, 16);
 
-                _check(value <= 0x10FFFF, "unicode must be at most 0x10FFFF");
+                _check(value <= 0x10FFFF, "l’unicode doit valoir au plus 0x10FFFF");
                 symbol = cast(dchar) value;
             }
             catch (ConvOverflowException e) {
-                _check(false, "unicode must be at most 0x10FFFF");
+                _check(false, "l’unicode doit valoir au plus 0x10FFFF");
             }
 
             break;
@@ -480,7 +482,7 @@ package final class Tokenizer {
         token.type = Token.Type.char_;
         uint textLength = 0;
 
-        _check(_getCurrent() == '\'', "missing `'` at the start of the character");
+        _check(_getCurrent() == '\'', "symbole `'` manquant en début de caractère");
         _current++;
         textLength++;
 
@@ -498,7 +500,7 @@ package final class Tokenizer {
         token.charValue = ch;
         _tokens ~= token;
 
-        _check(_getCurrent() == '\'', "missing `'` at the end of the character");
+        _check(_getCurrent() == '\'', "symbole `'` manquant en fin de caractère");
     }
 
     /// Analyse une chaîne de caractères délimité par des `"`.
@@ -507,13 +509,13 @@ package final class Tokenizer {
         token.type = Token.Type.string_;
         uint textLength = 0;
 
-        _check(_getCurrent() == '\"', "missing `'` at the start of the string");
+        _check(_getCurrent() == '\"', "symbole `\"` manquant en début de texte");
         _current++;
         textLength++;
 
         string buffer;
         for (;;) {
-            _check(_current < _text.length, "missing `\"` at the end of the string");
+            _check(_current < _text.length, "symbole `\"` manquant en fin du texte");
             const dchar symbol = _getCurrent();
 
             if (symbol == '\n') {
@@ -594,7 +596,7 @@ package final class Tokenizer {
     /// Renvoie le jeton de la position actuelle
     Token getToken(sizediff_t offset = 0) {
         const ptrdiff_t position = (cast(ptrdiff_t) _currentToken) + offset;
-        _check(position >= 0 && position < _tokens.length, "unexpected end of file");
+        _check(position >= 0 && position < _tokens.length, "fin de fichier inopiné");
         return _tokens[position];
     }
 

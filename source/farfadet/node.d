@@ -29,9 +29,9 @@ final class Farfadet {
         }
         /// Ditto
         string name(string name_) {
-            enforce!FarfadetException(!_isMaster, "this node can’t have a name");
+            enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas être nommé");
             enforce!FarfadetException(isValidKey(name_),
-                format!"`%s` is not a valid node name"(name_));
+                format!"`%s` n’est pas un nom de nœud valide"(name_));
             return _name = name_;
         }
 
@@ -70,7 +70,7 @@ final class Farfadet {
         _isMaster = false;
         Token token = tokenizer.getToken();
         tokenizer.check(token.type == Token.Type.key,
-            format!"missing key, found `%s` instead"(token.toString()));
+            format!"clé manquante, `%s` trouvé à la place"(token.toString()));
 
         _name = token.strValue;
         tokenizer.advanceToken();
@@ -94,7 +94,7 @@ final class Farfadet {
     private void _parseBlock(Tokenizer tokenizer) {
         tokenizer.advanceToken();
         for (;;) {
-            tokenizer.check(!tokenizer.isEndToken(), "missing `}` after a `{`");
+            tokenizer.check(!tokenizer.isEndToken(), "symbole `}` manquant après un `{`");
             Token token = tokenizer.getToken();
             if (token.type == Token.Type.closeBlock) {
                 tokenizer.advanceToken();
@@ -110,7 +110,7 @@ final class Farfadet {
         Token token = tokenizer.getToken();
         final switch (token.type) with (Token.Type) {
         case key:
-            tokenizer.check(false, "unexpected key in place of an argument");
+            tokenizer.check(false, "clé inattendu à la place d’un argument");
             return Value(0);
         case int_:
             tokenizer.advanceToken();
@@ -131,10 +131,10 @@ final class Farfadet {
             tokenizer.advanceToken();
             return Value(token.boolValue);
         case openBlock:
-            tokenizer.check(false, "unexpected `{` in place of an argument");
+            tokenizer.check(false, "symbole `{` inattendu au lieu d’un argument");
             return Value(0);
         case closeBlock:
-            tokenizer.check(false, "unexpected `}` in place of an argument");
+            tokenizer.check(false, "symbole `}` inattendu au lieu d’un argument");
             return Value(0);
         case openArray:
             Value[] array;
@@ -149,7 +149,7 @@ final class Farfadet {
             }
             return Value(array);
         case closeArray:
-            tokenizer.check(false, "unexpected `]` in place of an argument");
+            tokenizer.check(false, "symbole `]` inattendu au lieu d’un argument");
             return Value(0);
         }
     }
@@ -162,13 +162,13 @@ final class Farfadet {
     /// Récupère l’argument à la position donné
     T get(T)(size_t index) const {
         enforce!FarfadetException(index < _values.length,
-            format!"invalid index %d out of %d argument(s) available"(index, _values.length));
+            format!"l’index %d dépasse les %d argument(s) disponibles"(index, _values.length));
         return _values[index].get!T();
     }
 
     /// Ajoute un argument à la liste
     void add(T)(T value) {
-        enforce!FarfadetException(!_isMaster, "this node can’t have arguments");
+        enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas avoir d’arguments");
 
         Value value;
         value.set!T(value);
