@@ -74,7 +74,7 @@ package struct Value {
     /// Récupère la valeur au bon format
     T get(T)() const {
         static if (isSomeString!T) {
-            enforce!FarfadetException(_type == Type.string_, "the value is not a string");
+            enforce!FarfadetException(_type == Type.string_, "la valeur n’est pas un string");
             return to!T(_string);
         }
         else static if (is(T == U[], U)) {
@@ -85,11 +85,11 @@ package struct Value {
             return result;
         }
         else static if (isSomeChar!T) {
-            enforce!FarfadetException(_type == Type.char_, "the value is not a character");
+            enforce!FarfadetException(_type == Type.char_, "la valeur n’est pas un caractère");
             return to!T(_char);
         }
         else static if (is(T == bool)) {
-            enforce!FarfadetException(_type == Type.bool_, "the value is not boolean");
+            enforce!FarfadetException(_type == Type.bool_, "la valeur n’est pas booléenne");
             return _bool;
         }
         else static if (__traits(isIntegral, T)) {
@@ -97,36 +97,36 @@ package struct Value {
                 switch (_type) with (Type) {
                 case uint_:
                     static if (T.sizeof < ulong.sizeof) {
-                        enforce!FarfadetException(_uint < T.max, "the value is too big");
+                        enforce!FarfadetException(_uint < T.max, "la valeur est trop grande");
                     }
                     return cast(T) _uint;
                 case int_:
-                    enforce!FarfadetException(_int >= 0, "the value is negative");
+                    enforce!FarfadetException(_int >= 0, "la valeur est négative");
                     static if (T.sizeof < long.sizeof) {
-                        enforce!FarfadetException(_int < T.max, "the value is too big");
+                        enforce!FarfadetException(_int < T.max, "la valeur est trop grande");
                     }
                     return cast(T) _int;
                 default:
-                    throw new FarfadetException("the value is not an integral number");
+                    throw new FarfadetException("la valeur n’est pas un nombre intégral");
                 }
             }
             else static if (isSigned!T) {
                 switch (_type) with (Type) {
                 case uint_:
                     static if (T.sizeof < ulong.sizeof) {
-                        enforce!FarfadetException(_uint < T.max, "the value is too big");
+                        enforce!FarfadetException(_uint < T.max, "la valeur est trop grande");
                     }
                     static if (T.sizeof == ulong.sizeof) {
-                        enforce!FarfadetException(_uint & (1uL << 63), "the value is too big");
+                        enforce!FarfadetException(_uint & (1uL << 63), "la valeur est trop grande");
                     }
                     return cast(T) _uint;
                 case int_:
                     static if (T.sizeof < long.sizeof) {
-                        enforce!FarfadetException(_int < T.max, "the value is too big");
+                        enforce!FarfadetException(_int < T.max, "la valeur est trop grande");
                     }
                     return cast(T) _int;
                 default:
-                    throw new FarfadetException("the value is not an integral number");
+                    throw new FarfadetException("la valeur n’est pas un nombre intégral");
                 }
             }
         }
@@ -139,11 +139,11 @@ package struct Value {
             case float_:
                 return cast(T) _float;
             default:
-                throw new FarfadetException("the value is not a floating point number");
+                throw new FarfadetException("la valeur n’est pas un nombre à virgule flottante");
             }
         }
         else {
-            static assert(false, "unsupported type `" ~ T.stringof ~ "`");
+            static assert(false, "type `" ~ T.stringof ~ "` non-supporté");
         }
     }
 
@@ -185,7 +185,7 @@ package struct Value {
             _type = Type.float_;
         }
         else {
-            static assert(false, "unsupported type `" ~ T.stringof ~ "`");
+            static assert(false, "type `" ~ T.stringof ~ "` non-supporté");
         }
     }
 

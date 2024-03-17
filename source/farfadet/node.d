@@ -34,31 +34,36 @@ final class Farfadet {
                 format!"`%s` n’est pas un nom de nœud valide"(name_));
             return _name = name_;
         }
-
-        /// Les nœuds enfants
-        const(Farfadet[]) nodes() const {
-            return _nodes;
-        }
     }
 
     /// Crée un nœud à partir d’un document
-    this(string text) {
-        _isMaster = true;
+    static Farfadet fromString(string text) {
+        Farfadet ffd = new Farfadet;
+        ffd._isMaster = true;
         Tokenizer tokenizer = new Tokenizer(text);
 
         while (!tokenizer.isEndToken()) {
             Farfadet node = new Farfadet(tokenizer);
-            _nodes ~= node;
+            ffd._nodes ~= node;
         }
+        return ffd;
     }
 
     /// Crée un nœud depuis les données bruts d’un document
-    this(const(ubyte[]) data) {
+    static Farfadet fromBytes(const(ubyte[]) data) {
         import std.utf : validate;
 
         string text = cast(string) data;
         validate(text);
-        this(text);
+        return fromString(text);
+    }
+
+    /// Crée un nœud depuis un fichier
+    static Farfadet fromFile(string filePath) {
+        import std.file : readText;
+
+        string text = readText(filePath);
+        return fromString(text);
     }
 
     /// Crée un nœud vierge
@@ -166,15 +171,29 @@ final class Farfadet {
         return _values[index].get!T();
     }
 
-    /// Ajoute un argument à la liste
-    void add(T)(T value) {
+    /// Nombre d’arguments du nœud
+    size_t getCount() const {
+        return _values.length;
+    }
+
+    void checkCount(size_t arguments) const {
+        enforce!FarfadetException(arguments == _values.length,
+            format!"le nœud `%s` requiert %d argument(s) mais en fournit %d"(_name,
+                arguments, _values.length));
+    }
+
+    /// Ajoute un argument à la liste \
+    /// Retourne le nœud lui-même pour permettre l’enchaînement
+    Farfadet add(T)(T value_) {
         enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas avoir d’arguments");
 
         Value value;
-        value.set!T(value);
+        value.set!T(value_);
         _values ~= value;
+        return this;
     }
 
+    /// Efface les nœuds enfants
     void clearNodes() {
         foreach (node; _nodes) {
             node._makeOrphan();
@@ -188,13 +207,90 @@ final class Farfadet {
         _values.length = 0;
     }
 
+    /// Ajoute un nœud en enfant
     Farfadet addNode(string name_) {
         Farfadet node = new Farfadet;
         node._isMaster = false;
         node.name = name_;
+        _nodes ~= node;
         return node;
     }
 
+    /// Vérifie que les nœuds enfants fassent uniquement partis d’une liste
+    void accept(string[] names) const {
+        enforce!FarfadetException(names.length || !_nodes.length,
+            "le nœud n’accepte pas de nœud enfant");
+
+        foreach (node; _nodes) {
+            bool isValid;
+            foreach (name_; names) {
+                if (node.name == name_) {
+                    isValid = true;
+                    break;
+                }
+            }
+            enforce!FarfadetException(isValid,
+                "le nœud `" ~ node.name ~ "` n’est pas valide dans `" ~ _name ~ "`, les candidats sont: " ~ _formatList(
+                    names));
+        }
+    }
+
+    /// Vérifie si un nœud enfant existe
+    bool hasNode(string name_) const {
+        foreach (node; _nodes) {
+            if (node.name == name_) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Retourne le premier nœud enfant avec le nom demandé
+    Farfadet getNode(string name_, size_t arguments = 0) const {
+        Farfadet result;
+        foreach (node; _nodes) {
+            if (node.name == name_) {
+                enforce!FarfadetException(!result,
+                    format!"le nœud `%s` est défini plusieurs fois dans `%s`"(name_, _name));
+
+                result = cast(Farfadet) node;
+            }
+        }
+        enforce!FarfadetException(result, format!"le nœud `%s` est absent de `%s`"(name_, _name));
+        result.checkCount(arguments);
+        return result;
+    }
+
+    /// Retourne tous les nœuds enfants ayant le nom demandé
+    Farfadet[] getNodes(string name_, size_t arguments = 0) const {
+        Farfadet[] list;
+        foreach (node; _nodes) {
+            if (node.name == name_) {
+                node.checkCount(arguments);
+                list ~= cast(Farfadet) node;
+            }
+        }
+        return list;
+    }
+
+    /// Retourne tous les nœuds enfants
+    Farfadet[] getNodes() const {
+        return cast(Farfadet[]) _nodes;
+    }
+
+    /// Retourne le nombre de nœuds enfants ayant le nom demandé
+    size_t getNodeCount(string name_) const {
+        return getNodes(name_).length;
+    }
+
+    /// Génère un fichier et l’enregistre
+    void save(string filePath, size_t spacing = 4) const {
+        import std.file : write;
+
+        write(filePath, generate(spacing));
+    }
+
+    /// Génère un fichier
     string generate(size_t spacing = 4) const {
         return _generate(0, spacing);
     }
@@ -235,4 +331,19 @@ final class Farfadet {
 
         return result;
     }
+}
+
+private string _formatList(string[] names) {
+    string result;
+    bool isInit = true;
+    foreach (name; names) {
+        if (isInit) {
+            isInit = false;
+        }
+        else {
+            result ~= ", ";
+        }
+        result ~= "`" ~ name ~ "`";
+    }
+    return result;
 }
