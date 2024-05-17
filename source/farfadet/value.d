@@ -11,6 +11,11 @@ import std.traits;
 
 import farfadet.error;
 
+package template isFarfadetValueType(T) {
+    enum isFarfadetValueType = isSomeString!T || isSomeChar!T || is(T == U[],
+            U) || is(T == bool) || __traits(isIntegral, T) || __traits(isFloating, T);
+}
+
 package struct Value {
     enum Type {
         uint_,

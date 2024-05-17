@@ -71,6 +71,16 @@ final class Farfadet {
         _isMaster = true;
     }
 
+    /// Copie
+    private this(Farfadet ffd) {
+        _isMaster = ffd._isMaster;
+        _name = ffd._name;
+        _values = ffd._values.dup;
+        foreach (Farfadet node; ffd._nodes) {
+            _nodes ~= new Farfadet(node);
+        }
+    }
+
     private this(Tokenizer tokenizer) {
         _isMaster = false;
         Token token = tokenizer.getToken();
@@ -164,11 +174,20 @@ final class Farfadet {
         _values.length = 0;
     }
 
-    /// Récupère l’argument à la position donné
-    T get(T)(size_t index) const {
+    /// Récupère l’argument à la position donnée
+    T get(T)(size_t index) const if (isFarfadetValueType!T) {
         enforce!FarfadetException(index < _values.length,
             format!"l’index %d dépasse les %d argument(s) disponibles"(index, _values.length));
         return _values[index].get!T();
+    }
+
+    /// Récupère les arguments de la structure à partir de la position donnée
+    T get(T)(size_t index) const if (is(T == struct)) {
+        T value;
+        static foreach (i, field; value.tupleof) {
+            value.tupleof[i] = get!(typeof(field))(index + i);
+        }
+        return value;
     }
 
     /// Nombre d’arguments du nœud
@@ -184,12 +203,20 @@ final class Farfadet {
 
     /// Ajoute un argument à la liste \
     /// Retourne le nœud lui-même pour permettre l’enchaînement
-    Farfadet add(T)(T value_) {
+    Farfadet add(T)(T value_) if (isFarfadetValueType!T) {
         enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas avoir d’arguments");
 
         Value value;
         value.set!T(value_);
         _values ~= value;
+        return this;
+    }
+
+    /// Ditto
+    Farfadet add(T)(const ref T value) if (is(T == struct)) {
+        static foreach (i, field; value.tupleof) {
+            add!(typeof(field))(value.tupleof[i]);
+        }
         return this;
     }
 
@@ -212,6 +239,13 @@ final class Farfadet {
         Farfadet node = new Farfadet;
         node._isMaster = false;
         node.name = name_;
+        _nodes ~= node;
+        return node;
+    }
+
+    /// Ditto
+    Farfadet addNode(Farfadet ffd) {
+        Farfadet node = new Farfadet(ffd);
         _nodes ~= node;
         return node;
     }
@@ -246,7 +280,7 @@ final class Farfadet {
     }
 
     /// Retourne le premier nœud enfant avec le nom demandé
-    Farfadet getNode(string name_, size_t arguments = 0) const {
+    Farfadet getNode(string name_) const {
         Farfadet result;
         foreach (node; _nodes) {
             if (node.name == name_) {
@@ -257,18 +291,32 @@ final class Farfadet {
             }
         }
         enforce!FarfadetException(result, format!"le nœud `%s` est absent de `%s`"(name_, _name));
-        result.checkCount(arguments);
+        return result;
+    }
+
+    /// Ditto
+    Farfadet getNode(string name_, size_t expectedArguments) const {
+        Farfadet result = getNode(name_);
+        result.checkCount(expectedArguments);
         return result;
     }
 
     /// Retourne tous les nœuds enfants ayant le nom demandé
-    Farfadet[] getNodes(string name_, size_t arguments = 0) const {
+    Farfadet[] getNodes(string name_) const {
         Farfadet[] list;
         foreach (node; _nodes) {
             if (node.name == name_) {
-                node.checkCount(arguments);
                 list ~= cast(Farfadet) node;
             }
+        }
+        return list;
+    }
+
+    /// Ditto
+    Farfadet[] getNodes(string name_, size_t expectedArguments) const {
+        Farfadet[] list = getNodes(name_);
+        foreach (node; list) {
+            node.checkCount(expectedArguments);
         }
         return list;
     }
