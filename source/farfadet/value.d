@@ -161,9 +161,9 @@ package struct Value {
         else static if (is(T == U[], U)) {
             _array.length = 0;
             foreach (ref element; value) {
-                Value value;
-                value.set!U(element);
-                _array ~= value;
+                Value subValue;
+                subValue.set!U(element);
+                _array ~= subValue;
             }
             _type = Type.array_;
         }
