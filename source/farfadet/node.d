@@ -221,11 +221,23 @@ final class Farfadet {
     }
 
     /// Efface les nœuds enfants
-    void clearNodes() {
-        foreach (node; _nodes) {
-            node._makeOrphan();
+    void clearNodes(bool makeOrphan = true) {
+        if (makeOrphan) {
+            foreach (node; _nodes) {
+                node._makeOrphan();
+            }
         }
         _nodes.length = 0;
+    }
+
+    void removeNode(Farfadet node_) {
+        Farfadet[] list;
+        foreach (node; _nodes) {
+            if (node != node_) {
+                list ~= node;
+            }
+        }
+        _nodes = list;
     }
 
     private void _makeOrphan() {
@@ -324,6 +336,10 @@ final class Farfadet {
     /// Retourne tous les nœuds enfants
     Farfadet[] getNodes() const {
         return cast(Farfadet[]) _nodes;
+    }
+
+    void setNodes(Farfadet[] nodes) {
+        _nodes = nodes;
     }
 
     /// Retourne le nombre de nœuds enfants ayant le nom demandé
