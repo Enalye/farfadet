@@ -58,7 +58,7 @@ package final class Tokenizer {
         _advance(true);
 
         if (_current >= _text.length) {
-            _tokens ~= Token(_line, _current, _positionOfLine);
+            return;
         }
 
         int blockLevel, arrayLevel;
