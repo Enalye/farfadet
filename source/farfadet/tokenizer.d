@@ -102,7 +102,7 @@ package final class Tokenizer {
                 blockLevel--;
 
                 _check(blockLevel >= 0,
-                    "les accolades ouvrantes et fermantes ne correspondents pas");
+                    "les accolades ouvrantes et fermantes ne correspondent pas");
 
                 if (arrayLevels.length) {
                     arrayLevel = arrayLevels[$ - 1];
