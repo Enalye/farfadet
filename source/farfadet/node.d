@@ -213,7 +213,7 @@ final class Farfadet {
     }
 
     /// Ditto
-    Farfadet add(T)(const ref T value) if (is(T == struct)) {
+    Farfadet add(T)(const T value) if (is(T == struct)) {
         static foreach (i, field; value.tupleof) {
             add!(typeof(field))(value.tupleof[i]);
         }
@@ -345,6 +345,11 @@ final class Farfadet {
     /// Retourne le nombre de nœuds enfants ayant le nom demandé
     size_t getNodeCount(string name_) const {
         return getNodes(name_).length;
+    }
+
+    /// Lance une erreur
+    void fail(string msg, string file = __FILE__, size_t line = __LINE__) const {
+        throw new FarfadetException(msg, file, line);
     }
 
     /// Génère un fichier et l’enregistre
