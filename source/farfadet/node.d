@@ -262,6 +262,50 @@ final class Farfadet {
         return node;
     }
 
+    /// Ajoute un nœud en enfant après le nœud indiqué, s’il est valide
+    Farfadet addNodeAfter(string name_, Farfadet after) {
+        int index = -1;
+        foreach (size_t i, Farfadet searchNode; _nodes) {
+            if (searchNode == after) {
+                index = cast(int) i;
+                break;
+            }
+        }
+
+        if (index == -1 || index + 1 == _nodes.length) {
+            return addNode(name_);
+        }
+
+        index++;
+
+        Farfadet node = new Farfadet;
+        node._isMaster = false;
+        node.name = name_;
+        _nodes = _nodes[0 .. index] ~ node ~ _nodes[index .. $];
+        return node;
+    }
+
+    /// Ditto
+    Farfadet addNodeAfter(Farfadet ffd, Farfadet after) {
+        int index = -1;
+        foreach (size_t i, Farfadet searchNode; _nodes) {
+            if (searchNode == after) {
+                index = cast(int) i;
+                break;
+            }
+        }
+
+        if (index == -1 || index + 1 == _nodes.length) {
+            return addNode(ffd);
+        }
+
+        index++;
+
+        Farfadet node = new Farfadet(ffd);
+        _nodes = _nodes[0 .. index] ~ node ~ _nodes[index .. $];
+        return node;
+    }
+
     /// Vérifie que les nœuds enfants fassent uniquement partis d’une liste
     void accept(string[] names) const {
         enforce!FarfadetException(names.length || !_nodes.length,
