@@ -29,7 +29,7 @@ final class Farfadet {
         }
         /// Ditto
         string name(string name_) {
-            enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas être nommé");
+            //enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas être nommé");
             enforce!FarfadetException(isValidKey(name_),
                 format!"`%s` n’est pas un nom de nœud valide"(name_));
             return _name = name_;
@@ -204,7 +204,7 @@ final class Farfadet {
     /// Ajoute un argument à la liste \
     /// Retourne le nœud lui-même pour permettre l’enchaînement
     Farfadet add(T)(T value_) if (isFarfadetValueType!T) {
-        enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas avoir d’arguments");
+        //enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas avoir d’arguments");
 
         Value value;
         value.set!T(value_);
@@ -263,10 +263,10 @@ final class Farfadet {
     }
 
     /// Ajoute un nœud en enfant après le nœud indiqué, s’il est valide
-    Farfadet addNodeAfter(string name_, Farfadet after) {
+    Farfadet addNodeAfter(string name_, bool delegate(Farfadet) predicate) {
         int index = -1;
         foreach (size_t i, Farfadet searchNode; _nodes) {
-            if (searchNode == after) {
+            if (predicate(searchNode)) {
                 index = cast(int) i;
                 break;
             }
