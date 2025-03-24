@@ -5,7 +5,7 @@
  */
 module farfadet.value;
 
-import std.conv : to;
+import std.conv : to, ConvException;
 import std.exception : enforce;
 import std.traits;
 
@@ -78,7 +78,16 @@ package struct Value {
 
     /// Récupère la valeur au bon format
     T get(T)() const {
-        static if (isSomeString!T) {
+        static if (is(T == enum)) {
+            enforce!FarfadetException(_type == Type.string_, "la valeur n’est pas une énumération");
+            try {
+                return to!T(_string);
+            }
+            catch (ConvException e) {
+                throw new FarfadetException("l’énumération n’est pas un champ valide");
+            }
+        }
+        else static if (isSomeString!T) {
             enforce!FarfadetException(_type == Type.string_, "la valeur n’est pas un string");
             return to!T(_string);
         }
@@ -154,7 +163,11 @@ package struct Value {
 
     /// Modifie la valeur au bon format
     void set(T)(T value) {
-        static if (isSomeString!T) {
+        static if (is(T == enum)) {
+            _string = to!string(value);
+            _type = Type.string_;
+        }
+        else static if (isSomeString!T) {
             _string = to!string(value);
             _type = Type.string_;
         }
