@@ -11,9 +11,13 @@ import std.traits;
 
 import farfadet.error;
 
+public template isFarfadetCompatible(T) {
+    enum isFarfadetCompatible = is(T == struct) || isFarfadetValueType!T;
+}
+
 package template isFarfadetValueType(T) {
-    enum isFarfadetValueType = isSomeString!T || isSomeChar!T || is(T == U[],
-            U) || is(T == bool) || __traits(isIntegral, T) || __traits(isFloating, T);
+    enum isFarfadetValueType = isSomeString!T || isSomeChar!T || is(Unqual!T == U[],
+            U) || is(Unqual!T == bool) || __traits(isIntegral, T) || __traits(isFloating, T);
 }
 
 package struct Value {
@@ -78,7 +82,7 @@ package struct Value {
 
     /// Récupère la valeur au bon format
     T get(T)() const {
-        static if (is(T == enum)) {
+        static if (is(Unqual!T == enum)) {
             enforce!FarfadetException(_type == Type.string_, "la valeur n’est pas une énumération");
             try {
                 return to!T(_string);
@@ -91,7 +95,7 @@ package struct Value {
             enforce!FarfadetException(_type == Type.string_, "la valeur n’est pas un string");
             return to!T(_string);
         }
-        else static if (is(T == U[], U)) {
+        else static if (is(Unqual!T == U[], U)) {
             T result;
             foreach (value; _array) {
                 result ~= value.get!U();
@@ -102,7 +106,7 @@ package struct Value {
             enforce!FarfadetException(_type == Type.char_, "la valeur n’est pas un caractère");
             return to!T(_char);
         }
-        else static if (is(T == bool)) {
+        else static if (is(Unqual!T == bool)) {
             enforce!FarfadetException(_type == Type.bool_, "la valeur n’est pas booléenne");
             return _bool;
         }
@@ -162,8 +166,8 @@ package struct Value {
     }
 
     /// Modifie la valeur au bon format
-    void set(T)(T value) {
-        static if (is(T == enum)) {
+    void set(T)(const T value) {
+        static if (is(Unqual!T == enum)) {
             _string = to!string(value);
             _type = Type.string_;
         }
@@ -171,7 +175,7 @@ package struct Value {
             _string = to!string(value);
             _type = Type.string_;
         }
-        else static if (is(T == U[], U)) {
+        else static if (is(Unqual!T == U[], U)) {
             _array.length = 0;
             foreach (ref element; value) {
                 Value subValue;
@@ -184,7 +188,7 @@ package struct Value {
             _char = to!dchar(value);
             _type = Type.char_;
         }
-        else static if (is(T == bool)) {
+        else static if (is(Unqual!T == bool)) {
             _bool = value;
             _type = Type.bool_;
         }

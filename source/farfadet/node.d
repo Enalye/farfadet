@@ -203,7 +203,7 @@ final class Farfadet {
 
     /// Ajoute un argument à la liste \
     /// Retourne le nœud lui-même pour permettre l’enchaînement
-    Farfadet add(T)(T value_) if (isFarfadetValueType!T) {
+    Farfadet add(T)(const T value_) if (isFarfadetValueType!T) {
         //enforce!FarfadetException(!_isMaster, "ce nœud ne peut pas avoir d’arguments");
 
         Value value;

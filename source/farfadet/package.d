@@ -8,4 +8,5 @@ module farfadet;
 public {
     import farfadet.error;
     import farfadet.node;
+    import farfadet.value;
 }
