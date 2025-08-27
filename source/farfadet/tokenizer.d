@@ -550,9 +550,7 @@ package final class Tokenizer {
                 break;
 
             const dchar symbol = _getCurrent();
-            if (symbol <= '&' || (symbol >= '(' && symbol <= '/') || (symbol >= ':' &&
-                    symbol <= '@') || (symbol >= '[' && symbol <= '^') ||
-                (symbol >= '{' && symbol <= 0x7F))
+            if (!isKeyCharValid(symbol))
                 break;
 
             buffer ~= symbol;
@@ -620,11 +618,23 @@ package bool isValidKey(string name) {
         return false;
 
     foreach (symbol; name) {
-        if (symbol <= '&' || (symbol >= '(' && symbol <= '/') || (symbol >= ':' &&
-                symbol <= '@') || (symbol >= '[' && symbol <= '^') || (symbol >= '{' &&
-                symbol <= 0x7F))
+        if (!isKeyCharValid(symbol))
             return false;
     }
 
     return true;
+}
+
+private bool isKeyCharValid(dchar symbol) {
+    switch (symbol) {
+    case 0: .. case '&':
+    case '(': .. case ',':
+    case '/':
+    case ';': .. case '?':
+    case '[': .. case '^':
+    case '{': .. case 0x7F:
+        return false;
+    default:
+        return true;
+    }
 }
