@@ -344,6 +344,7 @@ final class Farfadet {
                     format!"le nœud `%s` est défini plusieurs fois dans `%s`"(name_, _name));
 
                 result = cast(Farfadet) node;
+                return result;
             }
         }
         enforce!FarfadetException(result, format!"le nœud `%s` est absent de `%s`"(name_, _name));
