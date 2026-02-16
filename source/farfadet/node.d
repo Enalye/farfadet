@@ -67,16 +67,16 @@ final class Farfadet {
     }
 
     /// Crée un nœud vierge
-    this() {
-        _isMaster = true;
+    this(bool isMaster_ = true) {
+        _isMaster = isMaster_;
     }
 
     /// Copie
-    private this(Farfadet ffd) {
+    this(const(Farfadet) ffd) {
         _isMaster = ffd._isMaster;
         _name = ffd._name;
         _values = ffd._values.dup;
-        foreach (Farfadet node; ffd._nodes) {
+        foreach (const(Farfadet) node; ffd._nodes) {
             _nodes ~= new Farfadet(node);
         }
     }
@@ -201,6 +201,42 @@ final class Farfadet {
                 arguments, _values.length));
     }
 
+    /// Modifie un argument de la liste \
+    /// Retourne le nœud lui-même pour permettre l’enchaînement
+    Farfadet addOrSet(T)(size_t index, const T value_) if (isFarfadetValueType!T) {
+        if (index >= _values.length) {
+            _values.length = index + 1;
+        }
+
+        _values[index].set!T(value_);
+        return this;
+    }
+
+    /// Ditto
+    Farfadet addOrSet(T)(size_t index, const T value) if (is(T == struct)) {
+        static foreach (i, field; value.tupleof) {
+            addOrSet!(typeof(field))(index + i, value.tupleof[i]);
+        }
+        return this;
+    }
+
+    /// Modifie un argument de la liste \
+    /// Retourne le nœud lui-même pour permettre l’enchaînement
+    Farfadet set(T)(size_t index, const T value_) if (isFarfadetValueType!T) {
+        enforce!FarfadetException(index < _values.length, "ce nœud ne peut pas avoir d’arguments");
+
+        _values.set!T(value_);
+        return this;
+    }
+
+    /// Ditto
+    Farfadet set(T)(size_t index, const T value) if (is(T == struct)) {
+        static foreach (i, field; value.tupleof) {
+            set!(typeof(field))(index, value.tupleof[i]);
+        }
+        return this;
+    }
+
     /// Ajoute un argument à la liste \
     /// Retourne le nœud lui-même pour permettre l’enchaînement
     Farfadet add(T)(const T value_) if (isFarfadetValueType!T) {
@@ -256,7 +292,7 @@ final class Farfadet {
     }
 
     /// Ditto
-    Farfadet addNode(Farfadet ffd) {
+    Farfadet addNode(const(Farfadet) ffd) {
         Farfadet node = new Farfadet(ffd);
         _nodes ~= node;
         return node;
@@ -405,16 +441,16 @@ final class Farfadet {
     }
 
     /// Génère un fichier
-    string generate(size_t spacing = 4) const {
-        return _generate(0, spacing);
+    string generate(size_t spacing = 4, bool useLines = true) const {
+        return _generate(0, spacing, useLines);
     }
 
-    private string _generate(size_t indent, size_t spacing) const {
+    private string _generate(size_t indent, size_t spacing, bool useLines) const {
         string result;
 
         if (_isMaster) {
             foreach (node; _nodes) {
-                result ~= node._generate(indent, spacing);
+                result ~= node._generate(indent, spacing, useLines);
             }
         }
         else {
@@ -429,9 +465,9 @@ final class Farfadet {
             }
 
             if (_nodes.length)
-                result ~= " {\n";
+                result ~= useLines ? " {\n" : " {";
             foreach (node; _nodes) {
-                result ~= node._generate(indent + spacing, spacing);
+                result ~= node._generate(indent + spacing, spacing, useLines);
             }
             if (_nodes.length) {
                 for (int i; i < indent; i++) {
@@ -440,7 +476,10 @@ final class Farfadet {
                 result ~= "}";
             }
 
-            result ~= "\n";
+            if (useLines)
+                result ~= "\n";
+            else if (!_nodes.length)
+                result ~= " ";
         }
 
         return result;
